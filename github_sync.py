@@ -22,10 +22,13 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE),
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
         logging.StreamHandler(sys.stdout),
     ],
 )
+# Fix Windows console unicode issues
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 log = logging.getLogger("github-sync")
 
 
@@ -133,6 +136,7 @@ def collect_files(library_path: Path, extensions: list, ignore_dirs: list, max_m
     """Yield (abs_path, relative_repo_path) for all matching files."""
     exts = {e.lower() for e in extensions} if extensions else None
     ignore = set(ignore_dirs)
+    ignore_files = {"config.json", ".sync_cache.json", "sync.log"}
     max_bytes = int(max_mb * 1024 * 1024)
 
     for root, dirs, files in os.walk(library_path):
@@ -140,6 +144,8 @@ def collect_files(library_path: Path, extensions: list, ignore_dirs: list, max_m
         dirs[:] = [d for d in dirs if d not in ignore]
 
         for fname in files:
+            if fname in ignore_files:
+                continue
             if exts and Path(fname).suffix.lower() not in exts:
                 continue
             abs_path = Path(root) / fname
@@ -184,7 +190,7 @@ def run_sync(cfg: dict) -> dict:
             log.error("Cannot access or create repo. Check your token and repo name.")
             sys.exit(1)
 
-    log.info("Starting sync: %s → %s/%s @ %s", library, cfg["github_username"], cfg["repo_name"], cfg["branch"])
+    log.info("Starting sync: %s -> %s/%s @ %s", library, cfg["github_username"], cfg["repo_name"], cfg["branch"])
 
     cache_file = Path(__file__).parent / ".sync_cache.json"
     cache: dict = json.loads(cache_file.read_text()) if cache_file.exists() else {}
@@ -207,7 +213,7 @@ def run_sync(cfg: dict) -> dict:
         content = abs_path.read_bytes()
 
         if api.put_file(repo_path, content, commit_msg, sha=sha):
-            log.info("✅  %s", repo_path)
+            log.info("OK  %s", repo_path)
             cache[repo_path] = md5
             stats["uploaded"] += 1
         else:
