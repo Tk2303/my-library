@@ -38,8 +38,8 @@ def install_cron():
 
     proc = subprocess.run(["crontab", "-"], input=new_crontab, text=True)
     if proc.returncode == 0:
-        print(f"✅  Cron job installed! Will run daily at {HOUR:02d}:{MINUTE:02d}.")
-        print(f"    Logs → {LOG}")
+        print(f"OK  Cron job installed! Will run daily at {HOUR:02d}:{MINUTE:02d}.")
+        print(f"    Logs -> {LOG}")
         print("\n  Useful commands:")
         print("    crontab -l          # view all cron jobs")
         print("    crontab -r          # remove all cron jobs")
@@ -61,14 +61,14 @@ def install_windows():
     )
     result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
     if result.returncode == 0:
-        print(f"✅  Windows Task Scheduler task created: {task_name}")
+        print(f"OK  Windows Task Scheduler task created: {task_name}")
         print(f"    Will run daily at {HOUR:02d}:{MINUTE:02d}")
         print("\n  Useful commands:")
         print(f'    schtasks /query /tn "{task_name}"   # check status')
         print(f'    schtasks /delete /tn "{task_name}"  # remove task')
         print(f'    schtasks /run /tn "{task_name}"     # run now')
     else:
-        print("❌  Failed to create task:", result.stderr)
+        print("FAILED to create task:", result.stderr)
         print("    Try running this script as Administrator.")
 
 
